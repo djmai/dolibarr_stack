@@ -1,0 +1,36 @@
+# traefik/dynamic/dashboard.yml
+http:
+  routers:
+    # --- Router para HTTP (puerto 80) ---
+    dashboard-http:
+      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      service: "api@internal"
+      entryPoints:
+        - "web"
+      middlewares:
+        - "dashboard-auth@file"
+        - "dashboard-slash@file"
+
+    # --- Router para HTTPS (puerto 443) ---
+    # dashboard-https:
+    #   rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+    #   service: "api@internal"
+    #   entryPoints:
+    #     - "websecure"
+    #   middlewares:
+    #     - "dashboard-auth@file"
+    #     - "dashboard-slash@file"
+    #   tls: {}   # Sin certresolver, usaría el certificado autofirmado por defecto
+
+  middlewares:
+    dashboard-slash:
+      redirectRegex:
+        regex: "^(https?://[^/]+/dashboard)$$"
+        replacement: "${1}/"
+        permanent: true
+    dashboard-auth:
+      basicAuth:
+        users:
+          # usuario: admin / contraseña: admin123 (cámbialo!)
+          # docker run --rm httpd:alpine htpasswd -nbB admin "tu_contraseña_segura"
+          - "admin:$2y$05$FDQ98ZgVgzDwLgxwmkqBL.NN5L.vnzyQ.qemcK/lQIYaC1ZjDPH/i"

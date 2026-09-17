@@ -1,0 +1,27 @@
+# traefik/traefik.yml
+
+# ------------------------------------------------------------------------------
+# Providers
+# ------------------------------------------------------------------------------
+providers:
+  docker:
+    exposedByDefault: false
+    # Descomentar si existe mas de un red
+    # network: red-local
+  # Directorio para configuración dinámica (certificados, middlewares, etc.)
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+entryPoints:
+  web:
+    address: ":80"
+
+api:
+  dashboard: true    # Habilita el dashboard
+  insecure: false    # Desactiva el acceso directo sin autenticación
+
+log:
+  level: INFO
+
+accessLog: true

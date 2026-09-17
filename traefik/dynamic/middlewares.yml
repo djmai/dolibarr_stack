@@ -1,0 +1,14 @@
+# ==============================================================================
+#   TRAEFIK - Middlewares
+# ==============================================================================
+
+http:
+  middlewares:
+    # Cabeceras de seguridad
+    security-headers:
+      headers:
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        frameDeny: true
+        browserXssFilter: true

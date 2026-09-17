@@ -1,0 +1,49 @@
+# ==============================================================================
+#   KOOL.YML - Wrapper de comandos para el proyecto Dolibarr Docker
+#
+#   Uso:  kool <script>
+#   Los scripts delegan al Makefile, que es la fuente de verdad.
+# ==============================================================================
+
+scripts:
+  # Contenedores - Producción
+  build: make build
+  up: make start
+  start: make start
+  stop: make stop
+  down: make down
+  restart: make restart
+
+  # Contenedores - Desarrollo
+  dev-build: make dev-build
+  dev-up: make dev-start
+  dev-start: make dev-start
+  dev-stop: make dev-stop
+  dev-down: make dev-down
+  dev-restart: make dev-restart
+
+  # Instalación
+  doli-install: make install-doli
+  doli-update: make update-doli
+
+  # Respaldos
+  backup: make backup
+  backup-list: make backup-list
+  restore: make restore
+  backup-clean: make backup-clean
+  backup-remove: make backup-remove
+
+  # Configuración
+  env: make env
+
+  # Ayuda
+  help: make help
+
+  # Limpieza
+  clean: docker compose down --remove-orphans
+  clean-dev: docker compose -f docker-compose.dev.yml down --remove-orphans
+  prune: docker system prune -f
+
+  # Diagnóstico
+  ps: docker compose ps
+  logs: docker compose logs -f

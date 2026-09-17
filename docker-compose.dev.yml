@@ -1,0 +1,54 @@
+#
+# Services definitions
+#
+
+services:
+  app:
+    build: ./Docker
+    container_name: ${APP_NAME:-app}
+    restart: unless-stopped
+    networks:
+      - red-local
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./${APP_FOLDER:-app}:${APP_PATH:-/app}:delegated # Carpeta de la aplicación
+      - ./Docker/php/php.ini:/usr/local/etc/php/php.ini # Monta el archivo php.ini
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      TZ: ${TZ:-America/Mexico_City}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+        
+  mariadb:
+    image: mariadb:latest
+    container_name: ${DB_NAME:-mariadb}
+    restart: unless-stopped
+    networks:
+      - red-local
+    ports:
+      - "${MARIA_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MARIA_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MARIA_DATABASE:-dolibarr}
+      MYSQL_USER: ${MARIA_USER:-dolibarr}
+      MYSQL_PASSWORD: ${MARIA_PASSWORD:-dolibarr}
+      TZ: ${TZ:-America/Mexico_City}
+    volumes:
+      - ./db/mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+#
+# Networks definitions
+#
+networks:
+  red-local:
+    # external: true
+    driver: bridge
+    name: ${NETWORK_NAME:-red-local}

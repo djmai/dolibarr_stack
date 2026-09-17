@@ -1,0 +1,103 @@
+# ==============================================================================
+#
+#   DOCKER COMPOSE - Traefik (HTTP local, sin HTTPS)
+#
+#   Propósito: Añadir un proxy inverso Traefik para usar dominios locales
+#              (ej: dolibarr.local) sin necesidad de HTTPS.
+#
+#   Uso:  docker compose -f docker-compose.traefik.yml up -d
+#
+# ==============================================================================
+services:
+
+  # Elimina este servicio si no quieres usar Traefik como proxy inverso para tu aplicación
+  # o si ya tienes otro proxy inverso configurado (ej: Nginx, Apache, Caddy, etc.)
+  traefik:
+    # Imagen oficial. En producción fija una versión concreta (ej: traefik:v3.7.13)
+    image: "traefik:latest"
+    container_name: "traefik"
+    # Reinicia automáticamente si se cae o si reinicias WSL/Windows
+    restart: unless-stopped
+    # Puertos: HTTP, HTTPS y dashboard
+    ports:
+      - "80:80"      # HTTP  (entrypoint 'web')
+      - "443:443"    # HTTPS (entrypoint 'websecure')
+      - "8080:8080"  # Dashboard (solo desarrollo)
+    volumes:
+      # Configuración estática. Debe llamarse 'traefik.yml' dentro del contenedor.
+      - "./traefik/configs/traefik-ssl.yml:/etc/traefik/traefik.yml:ro"
+      # Configuración dinámica: certificados TLS, middlewares, etc.
+      - "./traefik/dynamic:/etc/traefik/dynamic:ro"
+      # Certificados autofirmados (solo si usas SSL local)
+      - "./traefik/certs:/certs:ro"
+      # Socket de Docker (solo lectura, imprescindible para descubrir contenedores)
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      # Persistencia de Let's Encrypt (para producción)
+      - "./traefik/letsencrypt:/letsencrypt"
+    # Debe compartir red con los contenedores que va a enrutar
+    networks:
+      - red-local
+    labels:
+      # Evita que Traefik se auto-enrute a sí mismo
+      - "traefik.enable=false"
+
+  app:
+    build: ./Docker
+    container_name: ${APP_NAME:-dolibarr}
+    restart: unless-stopped
+    networks:
+      - red-local
+    volumes:
+      - ./${APP_FOLDER:-app}:${APP_PATH:-/app}:delegated # Carpeta de la aplicación
+      - ./Docker/php/php.ini:/usr/local/etc/php/php.ini # Monta el archivo php.ini
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      TZ: ${TZ:-America/Mexico_City}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=red-local"
+
+      # --- Router HTTPS ---
+      - "traefik.http.routers.${APP_NAME:-dolibarr}-https.rule=Host(`${APP_DOMAIN_DEV:-dolibarr.local}`)"
+      - "traefik.http.routers.${APP_NAME:-dolibarr}-https.entrypoints=websecure"
+      - "traefik.http.routers.${APP_NAME:-dolibarr}-https.service=${APP_NAME:-dolibarr}"
+      - "traefik.http.routers.${APP_NAME:-dolibarr}-https.middlewares=security-headers@file"
+      - "traefik.http.routers.${APP_NAME:-dolibarr}-https.tls=true"
+
+      # --- Servicio ---
+      - "traefik.http.services.${APP_NAME:-dolibarr}.loadbalancer.server.port=80"
+        
+  mariadb:
+    image: mariadb:latest
+    container_name: ${DB_NAME:-mariadb}
+    restart: unless-stopped
+    networks:
+      - red-local
+    # ports:
+      # - "${MARIA_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MARIA_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MARIA_DATABASE:-dolibarr}
+      MYSQL_USER: ${MARIA_USER:-dolibarr}
+      MYSQL_PASSWORD: ${MARIA_PASSWORD:-dolibarr}
+      TZ: ${TZ:-America/Mexico_City}
+    volumes:
+      - ./db/mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+#
+# Networks definitions
+#
+networks:
+  red-local:
+    # external: true
+    driver: bridge
+    name: ${NETWORK_NAME:-red-local}

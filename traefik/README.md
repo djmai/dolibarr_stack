@@ -1,0 +1,1 @@
+# Carpeta dedicada para las configuraciones globales de traefik

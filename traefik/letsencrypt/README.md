@@ -1,0 +1,1 @@
+# Carpeta dedicada para guardar los certificados de letsencrypt

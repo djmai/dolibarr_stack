@@ -1,0 +1,1 @@
+# Carpeta dedicada para los certificados autofirmados localmente

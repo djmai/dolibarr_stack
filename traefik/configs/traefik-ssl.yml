@@ -1,0 +1,63 @@
+# ==============================================================================
+#   TRAEFIK - Configuración estática
+#
+#   Este archivo reemplaza los flags del 'command' en docker-compose.
+#   Traefik lo lee desde /etc/traefik/traefik.yml dentro del contenedor.
+#
+#   ⚠️  IMPORTANTE:
+#     - Los certificados TLS y sus configuraciones van en 'dynamic/', no aquí.
+#     - Este archivo NO lee variables del .env. Los valores son literales.
+#     - Si necesitas valores dinámicos, usa labels en el contenedor.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Providers
+# ------------------------------------------------------------------------------
+providers:
+  docker:
+    exposedByDefault: false
+    # Descomentar si existe mas de un red
+    # network: red-local
+
+  # Directorio para configuración dinámica (certificados, middlewares, etc.)
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ------------------------------------------------------------------------------
+# Entrypoints (puertos de escucha)
+# ------------------------------------------------------------------------------
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+
+# ------------------------------------------------------------------------------
+# Certificados - Let's Encrypt (ACME)
+# ------------------------------------------------------------------------------
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: tu-email@ejemplo.com
+      storage: /letsencrypt/acme.json
+      tlsChallenge: true
+
+# ------------------------------------------------------------------------------
+# API / Dashboard
+# ------------------------------------------------------------------------------
+api:
+  insecure: true
+
+# ------------------------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------------------------
+log:
+  level: INFO
