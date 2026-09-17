@@ -42,7 +42,7 @@ services:
       - "traefik.enable=false"
 
   app:
-    build: ./Docker
+    build: ./docker
     container_name: ${APP_NAME:-dolibarr}
     restart: unless-stopped
     networks:
